@@ -15,34 +15,53 @@ type Module = {
 
 const modules: Module[] = [
   {
-    name: "RFMS Query Management", short: "RFMS Queries", description: "Track incoming queries, assignments and resolution status.", icon: ClipboardList,
-    fields: [{key:"reference",label:"Reference number",placeholder:"e.g. DEMO-RFMS-001"},{key:"subject",label:"Subject",placeholder:"Enter query subject"},{key:"received",label:"Received on",placeholder:"",type:"date"},{key:"priority",label:"Priority",placeholder:"Normal / High / Urgent"},{key:"status",label:"Status",placeholder:"Open / In progress / Resolved"},{key:"assignee",label:"Assigned to",placeholder:"Demo staff member"}],
-    columns:[{key:"reference",label:"Reference"},{key:"subject",label:"Subject"},{key:"received",label:"Received"},{key:"priority",label:"Priority"},{key:"assignee",label:"Assigned to"},{key:"status",label:"Status"}],
-    samples:[{reference:"DEMO-RFMS-001",subject:"Demonstration query – land records",received:"2026-11-12",priority:"Normal",assignee:"Demo User A",status:"In progress"},{reference:"DEMO-RFMS-002",subject:"Demonstration query – portal access",received:"2026-11-14",priority:"High",assignee:"Demo User B",status:"Open"},{reference:"DEMO-RFMS-003",subject:"Demonstration query – report correction",received:"2026-11-15",priority:"Low",assignee:"Demo User A",status:"Resolved"}]
+    name: "RFMS Query Management", short: "RFMS Queries", description: "Track RFMS queries using the headings in the master workbook.", icon: ClipboardList,
+    fields: [
+      {key:"reportedDate",label:"Reported Date",placeholder:"",type:"date"},
+      {key:"project",label:"Project",placeholder:"Project name"},
+      {key:"queryReportedByOffice",label:"Query reported by Office",placeholder:"Office / reporting unit"},
+      {key:"rfmsNo",label:"RFMS No.",placeholder:"Demo reference only"},
+      {key:"description",label:"Description",placeholder:"Fictional demo description"},
+      {key:"status",label:"Status",placeholder:"Open / In progress / Resolved"},
+      {key:"media",label:"Media (Whatsapp, Email, Both)",placeholder:"Whatsapp / Email / Both"},
+      {key:"remarks",label:"Remarks",placeholder:"Fictional demo remarks"},
+      {key:"followupHistory",label:"Follow-up History (WhatsApp & Email)",placeholder:"Fictional follow-up summary"},
+      {key:"diaRemarks",label:"DIA Remarks",placeholder:"Fictional demo remarks"},
+      {key:"lastFollowupDate",label:"Last Follow-up Date",placeholder:"",type:"date"},
+      {key:"nextActionDueDate",label:"Next Action Due Date",placeholder:"",type:"date"},
+      {key:"followupAgingAlert",label:"Follow-up Aging / Alert",placeholder:"Demo aging / alert"}
+    ],
+    columns:[
+      {key:"reportedDate",label:"Reported Date"},{key:"project",label:"Project"},{key:"queryReportedByOffice",label:"Query reported by Office"},{key:"rfmsNo",label:"RFMS No."},{key:"description",label:"Description"},{key:"status",label:"Status"},{key:"media",label:"Media (Whatsapp, Email, Both)"},{key:"remarks",label:"Remarks"},{key:"followupHistory",label:"Follow-up History (WhatsApp & Email)"},{key:"diaRemarks",label:"DIA Remarks"},{key:"lastFollowupDate",label:"Last Follow-up Date"},{key:"nextActionDueDate",label:"Next Action Due Date"},{key:"followupAgingAlert",label:"Follow-up Aging / Alert"}
+    ],
+    samples:[
+      {reportedDate:"2026-11-12",project:"Demo e-Governance Project",queryReportedByOffice:"Demo Taluka Office",rfmsNo:"DEMO-RFMS-001",description:"Fictional sample query for interface preview",status:"In progress",media:"Email",remarks:"Demo record only",followupHistory:"Sample follow-up entry",diaRemarks:"Sample DIA remark",lastFollowupDate:"2026-11-15",nextActionDueDate:"2026-11-20",followupAgingAlert:"5 days remaining"},
+      {reportedDate:"2026-11-14",project:"Demo Portal",queryReportedByOffice:"Demo District Office",rfmsNo:"DEMO-RFMS-002",description:"Fictional access-related query",status:"Open",media:"Whatsapp",remarks:"Demo record only",followupHistory:"No follow-up in demo",diaRemarks:"",lastFollowupDate:"",nextActionDueDate:"2026-11-21",followupAgingAlert:"Due soon"}
+    ]
   },
   {
-    name:"Daily Work Diary",short:"Work Diary",description:"Record daily activities, work notes and follow-ups.",icon:BookOpen,
-    fields:[{key:"date",label:"Entry date",placeholder:"",type:"date"},{key:"title",label:"Activity",placeholder:"Short activity title"},{key:"category",label:"Category",placeholder:"Administration / Technical / Meeting"},{key:"duration",label:"Duration (minutes)",placeholder:"e.g. 60",type:"number"},{key:"details",label:"Work notes",placeholder:"Describe the work completed"}],
-    columns:[{key:"date",label:"Date"},{key:"title",label:"Activity"},{key:"category",label:"Category"},{key:"duration",label:"Minutes"},{key:"details",label:"Work notes"}],
-    samples:[{date:"2026-11-17",title:"Daily system review",category:"Technical",duration:"45",details:"Fictional demonstration entry"},{date:"2026-11-16",title:"Coordination meeting",category:"Meeting",duration:"30",details:"Fictional demonstration entry"}]
+    name:"Daily Work Diary",short:"Work Diary",description:"The workbook's Daily Task Entry tab has no explicit header row; its source layout is not being guessed here.",icon:BookOpen,
+    fields:[{key:"date",label:"Date (provisional)",placeholder:"",type:"date"},{key:"title",label:"Today's task (provisional)",placeholder:"Fictional demo task"},{key:"details",label:"Progress / update (provisional)",placeholder:"Fictional demo update"}],
+    columns:[{key:"date",label:"Date (provisional)"},{key:"title",label:"Today's task (provisional)"},{key:"details",label:"Progress / update (provisional)"}],
+    samples:[{date:"2026-11-17",title:"Sample system review",details:"Fictional demonstration entry"},{date:"2026-11-16",title:"Sample coordination task",details:"Fictional demonstration entry"}]
   },
   {
-    name:"VC Management",short:"Video Conferences",description:"Plan meetings, manage schedules and maintain VC records.",icon:Video,
-    fields:[{key:"title",label:"Meeting title",placeholder:"Enter meeting title"},{key:"date",label:"Meeting date",placeholder:"",type:"date"},{key:"time",label:"Start time",placeholder:"",type:"time"},{key:"organizer",label:"Organizer",placeholder:"Demo organizer"},{key:"venue",label:"VC venue",placeholder:"Demo VC room"},{key:"status",label:"Status",placeholder:"Scheduled / Completed / Cancelled"}],
-    columns:[{key:"title",label:"Meeting"},{key:"date",label:"Date"},{key:"time",label:"Time"},{key:"organizer",label:"Organizer"},{key:"venue",label:"Venue"},{key:"status",label:"Status"}],
-    samples:[{title:"Sample district review VC",date:"2026-11-20",time:"11:00",organizer:"Demo Coordinator",venue:"Demo VC Room",status:"Scheduled"},{title:"Sample project coordination",date:"2026-11-18",time:"15:00",organizer:"Demo Coordinator",venue:"Demo VC Room",status:"Completed"}]
+    name:"VC Management",short:"Video Conferences",description:"Maintain VC records with the exact VC LOG headings from the workbook.",icon:Video,
+    fields:[{key:"sl",label:"SL",placeholder:"Demo serial number"},{key:"vcidPlace",label:"VCID/place of meeting",placeholder:"Demo VCID / meeting place"},{key:"date",label:"Date",placeholder:"",type:"date"},{key:"time",label:"Time",placeholder:"",type:"time"},{key:"duration",label:"Duration",placeholder:"e.g. 45 minutes"},{key:"subject",label:"Subject",placeholder:"Fictional demo subject"},{key:"vcLink",label:"VC Link",placeholder:"Do not enter real meeting links in this public demo"},{key:"remarks",label:"Remarks",placeholder:"Fictional demo remarks"},{key:"forCollectorOfficeNic",label:"For Collector Office/NIC",placeholder:"Demo note"}],
+    columns:[{key:"sl",label:"SL"},{key:"vcidPlace",label:"VCID/place of meeting"},{key:"date",label:"Date"},{key:"time",label:"Time"},{key:"duration",label:"Duration"},{key:"subject",label:"Subject"},{key:"vcLink",label:"VC Link"},{key:"remarks",label:"Remarks"},{key:"forCollectorOfficeNic",label:"For Collector Office/NIC"}],
+    samples:[{sl:"1",vcidPlace:"Demo VC Room",date:"2026-11-20",time:"11:00",duration:"45 minutes",subject:"Sample district review VC",vcLink:"Demo link withheld",remarks:"Fictional record",forCollectorOfficeNic:"NIC demo support"}]
   },
   {
-    name:"Network Management",short:"Network",description:"Log connectivity issues, escalation and restoration updates.",icon:Network,
-    fields:[{key:"ticket",label:"Ticket number",placeholder:"DEMO-NET-001"},{key:"location",label:"Location",placeholder:"Fictional location"},{key:"service",label:"Service",placeholder:"Internet / LAN / VPN"},{key:"issue",label:"Issue summary",placeholder:"Describe the issue"},{key:"severity",label:"Severity",placeholder:"Low / Medium / High / Critical"},{key:"status",label:"Status",placeholder:"Open / In progress / Resolved"}],
-    columns:[{key:"ticket",label:"Ticket"},{key:"location",label:"Location"},{key:"service",label:"Service"},{key:"issue",label:"Issue"},{key:"severity",label:"Severity"},{key:"status",label:"Status"}],
-    samples:[{ticket:"DEMO-NET-001",location:"Demo Office A",service:"LAN",issue:"Sample connectivity issue",severity:"Medium",status:"In progress"},{ticket:"DEMO-NET-002",location:"Demo Office B",service:"Internet",issue:"Sample link interruption",severity:"High",status:"Resolved"}]
+    name:"Network Management",short:"Network",description:"Complaint register and speed-test fields follow the workbook headings.",icon:Network,
+    fields:[{key:"srNo",label:"Sr. No.",placeholder:"Demo serial number"},{key:"dateComplaint",label:"Date of complaint",placeholder:"",type:"date"},{key:"department",label:"Department",placeholder:"Demo department"},{key:"category",label:"Category",placeholder:"Demo category"},{key:"problemDescription",label:"Problem description",placeholder:"Fictional issue description"},{key:"dktNo",label:"Dkt. NO",placeholder:"Demo docket number"},{key:"dateResolved",label:"Date of resolved",placeholder:"",type:"date"},{key:"actionTaken",label:"Action Taken",placeholder:"Fictional action taken"},{key:"status",label:"Status",placeholder:"Open / In progress / Resolved"},{key:"remarks",label:"Remarks",placeholder:"Fictional demo remarks"},{key:"speedTestDate",label:"Date (Speed test)",placeholder:"",type:"date"},{key:"downloadMbps",label:"download(mbps)",placeholder:"Demo numeric value",type:"number"},{key:"uploadMbps",label:"upload(mbps)",placeholder:"Demo numeric value",type:"number"}],
+    columns:[{key:"srNo",label:"Sr. No."},{key:"dateComplaint",label:"Date of complaint"},{key:"department",label:"Department"},{key:"category",label:"Category"},{key:"problemDescription",label:"Problem description"},{key:"dktNo",label:"Dkt. NO"},{key:"dateResolved",label:"Date of resolved"},{key:"actionTaken",label:"Action Taken"},{key:"status",label:"Status"},{key:"remarks",label:"Remarks"},{key:"speedTestDate",label:"Date (Speed test)"},{key:"downloadMbps",label:"download(mbps)"},{key:"uploadMbps",label:"upload(mbps)"}],
+    samples:[{srNo:"1",dateComplaint:"2026-11-12",department:"Demo Department",category:"Connectivity",problemDescription:"Fictional connectivity issue",dktNo:"DEMO-DKT-001",dateResolved:"2026-11-13",actionTaken:"Sample troubleshooting completed",status:"Resolved",remarks:"Demo record",speedTestDate:"2026-11-14",downloadMbps:"92",uploadMbps:"88"}]
   },
   {
-    name:"Seva Setu Management",short:"Seva Setu",description:"Maintain drive schedules, coordination and progress.",icon:Users,
-    fields:[{key:"drive",label:"Drive name",placeholder:"Enter drive name"},{key:"date",label:"Drive date",placeholder:"",type:"date"},{key:"location",label:"Location",placeholder:"Fictional location"},{key:"taluka",label:"Taluka",placeholder:"Demo taluka"},{key:"status",label:"Status",placeholder:"Planned / In progress / Completed"},{key:"notes",label:"Notes",placeholder:"Coordination notes"}],
-    columns:[{key:"drive",label:"Drive"},{key:"date",label:"Date"},{key:"location",label:"Location"},{key:"taluka",label:"Taluka"},{key:"status",label:"Status"}],
-    samples:[{drive:"Sample service delivery camp",date:"2026-11-22",location:"Demo location A",taluka:"Demo Taluka",status:"Planned"},{drive:"Sample public assistance drive",date:"2026-11-10",location:"Demo location B",taluka:"Demo Taluka",status:"Completed"}]
+    name:"Seva Setu Management",short:"Seva Setu",description:"Use the Seva Setu 2.0 sheet's original column headings.",icon:Users,
+    fields:[{key:"srNo",label:"Sr No",placeholder:"Demo serial number"},{key:"emailReceivedDate",label:"Email Received Date",placeholder:"",type:"date"},{key:"officeDept",label:"Office/Dept.",placeholder:"Demo office / department"},{key:"scheduledDates",label:"Scheduled Dates",placeholder:"Demo schedule dates"},{key:"mamlatdarUsers",label:"Mamlatdar Users to be activate",placeholder:"Demo count / details"},{key:"talukaPanchayatUsers",label:"Taluka Panchayat User to be activated",placeholder:"Demo count / details"},{key:"remarks",label:"Remarks",placeholder:"Fictional demo remarks"},{key:"scheduleEntryDone",label:"Schedule entry done by collector office ?",placeholder:"Yes / No / Pending"}],
+    columns:[{key:"srNo",label:"Sr No"},{key:"emailReceivedDate",label:"Email Received Date"},{key:"officeDept",label:"Office/Dept."},{key:"scheduledDates",label:"Scheduled Dates"},{key:"mamlatdarUsers",label:"Mamlatdar Users to be activate"},{key:"talukaPanchayatUsers",label:"Taluka Panchayat User to be activated"},{key:"remarks",label:"Remarks"},{key:"scheduleEntryDone",label:"Schedule entry done by collector office ?"}],
+    samples:[{srNo:"1",emailReceivedDate:"2026-11-10",officeDept:"Demo Office",scheduledDates:"2026-11-22",mamlatdarUsers:"2 demo users",talukaPanchayatUsers:"3 demo users",remarks:"Fictional sample only",scheduleEntryDone:"Yes"}]
   },
   {
     name:"Reports & Dashboard",short:"Reports",description:"View operational summaries and export approved reports.",icon:Gauge,
@@ -50,22 +69,33 @@ const modules: Module[] = [
     samples:[{report:"RFMS status summary",period:"Current month",description:"Summary report template",status:"Demo preview"},{report:"Network incident register",period:"Current month",description:"Incident report template",status:"Demo preview"},{report:"ICT asset register",period:"Current quarter",description:"Inventory report template",status:"Demo preview"}]
   },
   {
-    name:"ICT Asset Management",short:"ICT Assets",description:"Maintain inventory, allocation, warranty and service history.",icon:HardDrive,
-    fields:[{key:"tag",label:"Asset tag",placeholder:"DEMO-ASSET-001"},{key:"type",label:"Asset type",placeholder:"Desktop / Laptop / Printer"},{key:"model",label:"Make / model",placeholder:"Fictional model"},{key:"location",label:"Location",placeholder:"Demo location"},{key:"assigned",label:"Assigned to",placeholder:"Demo staff member"},{key:"status",label:"Asset status",placeholder:"In use / In stock / Under repair"}],
-    columns:[{key:"tag",label:"Asset tag"},{key:"type",label:"Type"},{key:"model",label:"Model"},{key:"location",label:"Location"},{key:"assigned",label:"Assigned to"},{key:"status",label:"Status"}],
-    samples:[{tag:"DEMO-ASSET-001",type:"Desktop",model:"Sample model A",location:"Demo Office",assigned:"Demo User A",status:"In use"},{tag:"DEMO-ASSET-002",type:"Printer",model:"Sample model B",location:"Demo Store",assigned:"Unassigned",status:"In stock"}]
+    name:"ICT Asset Management",short:"ICT Assets",description:"The workbook's NIC Valsad Stock tab is a register index; detailed asset-row headings are in linked registers, not this workbook.",icon:HardDrive,
+    fields:[],columns:[{key:"register",label:"Register / reference"},{key:"source",label:"Source in master workbook"}],
+    samples:[{register:"ICT INFRA HARDWARE STOCK ENTRY DETAILS NIC DISTRICT CENTRE, GUJARAT",source:"NIC Valsad Stock tab"},{register:"DistFurn-ReceivedList",source:"NIC Valsad Stock tab"},{register:"DistHardwareIssue",source:"NIC Valsad Stock tab"},{register:"VALSAD - District-Stock-Verification-Format",source:"NIC Valsad Stock tab"}]
   },
   {
-    name:"Staff Tour & Attendance",short:"Staff Movement",description:"Record official tours, attendance and movement details.",icon:CalendarDays,
-    fields:[{key:"staff",label:"Staff member",placeholder:"Demo staff member"},{key:"type",label:"Movement type",placeholder:"Tour / Attendance / Leave"},{key:"from",label:"From date",placeholder:"",type:"date"},{key:"to",label:"To date",placeholder:"",type:"date"},{key:"destination",label:"Destination",placeholder:"Fictional destination"},{key:"purpose",label:"Purpose",placeholder:"Official purpose"},{key:"approval",label:"Approval status",placeholder:"Pending / Approved / Rejected"}],
-    columns:[{key:"staff",label:"Staff"},{key:"type",label:"Type"},{key:"from",label:"From"},{key:"to",label:"To"},{key:"destination",label:"Destination"},{key:"approval",label:"Approval"}],
-    samples:[{staff:"Demo User A",type:"Tour",from:"2026-11-19",to:"2026-11-19",destination:"Demo destination",approval:"Pending"},{staff:"Demo User B",type:"Attendance",from:"2026-11-17",to:"2026-11-17",destination:"Office",approval:"Approved"}]
+    name:"Staff Tour & Attendance",short:"Staff Movement",description:"Record movement using the exact NIC Staff TourAttendance headings.",icon:CalendarDays,
+    fields:[{key:"srNo",label:"Sr. No",placeholder:"Demo serial number"},{key:"date",label:"Date",placeholder:"",type:"date"},{key:"reason",label:"Early leave Office Reason/Leave Reasons/Office Tour",placeholder:"Fictional demo reason"},{key:"reportedBy",label:"Reported By",placeholder:"Demo staff role"}],
+    columns:[{key:"srNo",label:"Sr. No"},{key:"date",label:"Date"},{key:"reason",label:"Early leave Office Reason/Leave Reasons/Office Tour"},{key:"reportedBy",label:"Reported By"}],
+    samples:[{srNo:"1",date:"2026-11-17",reason:"Sample official tour entry",reportedBy:"Demo staff member"}]
   },
   {
-    name:"Events & Training",short:"Events",description:"Coordinate events, training programmes and ICT support.",icon:Cloud,
-    fields:[{key:"event",label:"Event name",placeholder:"Enter event name"},{key:"type",label:"Event type",placeholder:"Training / Event / Exam support"},{key:"start",label:"Start date",placeholder:"",type:"date"},{key:"end",label:"End date",placeholder:"",type:"date"},{key:"venue",label:"Venue",placeholder:"Fictional venue"},{key:"requirements",label:"ICT requirements",placeholder:"Describe demo requirements"},{key:"status",label:"Status",placeholder:"Planned / Ongoing / Completed"}],
-    columns:[{key:"event",label:"Event"},{key:"type",label:"Type"},{key:"start",label:"Start date"},{key:"end",label:"End date"},{key:"venue",label:"Venue"},{key:"status",label:"Status"}],
-    samples:[{event:"Sample district training",type:"Training",start:"2026-11-25",end:"2026-11-25",venue:"Demo Training Hall",status:"Planned"},{event:"Sample ICT readiness exercise",type:"ICT support",start:"2026-11-08",end:"2026-11-08",venue:"Demo Venue",status:"Completed"}]
+    name:"Events & Training",short:"Events",description:"Maintain event details using the Events sheet headings.",icon:Cloud,
+    fields:[{key:"monthYear",label:"Month, Year",placeholder:"e.g. November, 2026"},{key:"dateOfEvent",label:"Date of Event",placeholder:"",type:"date"},{key:"event",label:"Event",placeholder:"Fictional demo event"},{key:"category",label:"Category",placeholder:"Demo category"},{key:"venue",label:"Venue",placeholder:"Fictional venue"}],
+    columns:[{key:"monthYear",label:"Month, Year"},{key:"dateOfEvent",label:"Date of Event"},{key:"event",label:"Event"},{key:"category",label:"Category"},{key:"venue",label:"Venue"}],
+    samples:[{monthYear:"November, 2026",dateOfEvent:"2026-11-25",event:"Sample district training",category:"Training",venue:"Demo Training Hall"}]
+  },
+  {
+    name:"iRAD Project Update",short:"iRAD Updates",description:"Daily iRAD task updates using the workbook's original headings.",icon:Activity,
+    fields:[{key:"date",label:"Date",placeholder:"",type:"date"},{key:"todaysTask",label:"Today's task",placeholder:"Fictional demo task"},{key:"descriptionTask",label:"Desciprtion of task (Training given to Whom (designation) ? What Project related work you have done today? )",placeholder:"Fictional demo description"},{key:"timeDuration",label:"Time Duration if Training /Meeting /NIC",placeholder:"Demo duration"},{key:"remarks",label:"Remarks",placeholder:"Fictional demo remarks"}],
+    columns:[{key:"date",label:"Date"},{key:"todaysTask",label:"Today's task"},{key:"descriptionTask",label:"Desciprtion of task (Training given to Whom (designation) ? What Project related work you have done today? )"},{key:"timeDuration",label:"Time Duration if Training /Meeting /NIC"},{key:"remarks",label:"Remarks"}],
+    samples:[{date:"2026-11-17",todaysTask:"Sample project coordination",descriptionTask:"Fictional demo description only",timeDuration:"30 minutes",remarks:"Demo entry"}]
+  },
+  {
+    name:"Inactivation Logs",short:"Inactivation Logs",description:"Column structure mirrors the Inactivation Logs tab; no source records are copied.",icon:ClipboardList,
+    fields:[{key:"column9",label:"Column 9",placeholder:"Demo value"},{key:"userId",label:"User ID",placeholder:"Use fictional demo identifiers only"},{key:"fullName",label:"Full name",placeholder:"Demo Person"},{key:"loginName",label:"Login name",placeholder:"demo.login"},{key:"column1",label:"Column 1",placeholder:"Demo value"},{key:"officeName",label:"Office Name",placeholder:"Demo office"},{key:"designation",label:"Designation",placeholder:"Demo designation"},{key:"inactiveDate",label:"InActive Date",placeholder:"",type:"date"},{key:"lastLogin",label:"Last Login",placeholder:"",type:"datetime-local"},{key:"mob",label:"Mob.",placeholder:"Do not enter real phone numbers in this public demo"}],
+    columns:[{key:"column9",label:"Column 9"},{key:"userId",label:"User ID"},{key:"fullName",label:"Full name"},{key:"loginName",label:"Login name"},{key:"column1",label:"Column 1"},{key:"officeName",label:"Office Name"},{key:"designation",label:"Designation"},{key:"inactiveDate",label:"InActive Date"},{key:"lastLogin",label:"Last Login"},{key:"mob",label:"Mob."}],
+    samples:[{column9:"1",userId:"DEMO-USER-001",fullName:"Demo Person A",loginName:"demo.user.a",column1:"—",officeName:"Demo Office",designation:"Demo Designation",inactiveDate:"",lastLogin:"2026-11-10T10:30",mob:"0000000000"}]
   }
 ];
 
