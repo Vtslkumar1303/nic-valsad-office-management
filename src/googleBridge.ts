@@ -33,6 +33,13 @@ export function requestHost<T = unknown>(request: HostRequest): Promise<T> {
       resolve: value => { window.clearTimeout(timeout); resolve(value as T); },
       reject: error => { window.clearTimeout(timeout); reject(error); }
     });
-    window.parent.postMessage({ ...request, channel: "nic-valsad-office", requestId }, "*");
+    const parentOrigin = document.referrer ? new URL(document.referrer).origin : "";
+    if (!parentOrigin) {
+      window.clearTimeout(timeout);
+      pending.delete(requestId);
+      reject(new Error("Open this application from its authorised Google Apps Script web-app link."));
+      return;
+    }
+    window.parent.postMessage({ ...request, channel: "nic-valsad-office", requestId }, parentOrigin);
   });
 }
