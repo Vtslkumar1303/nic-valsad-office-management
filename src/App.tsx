@@ -207,7 +207,7 @@ export default function App() {
         imported["ICT Asset Management"]=(sheets["NIC Valsad Stock"]||[]).filter(row=>row.some(v=>asText(v)!=="")).map(row=>({register:asText(row[0]),source:asText(row[1])}));
         imported["GoG Projects"]=(sheets["GoG Projects"]||[]).filter(row=>row.some(v=>asText(v)!=="")).map(row=>({reference:row.map(asText).filter(Boolean).join(" | ")}));
         if(!cancelled){
-          const loaded = await Promise.all(modules.map(async mod => {
+          const loaded = await Promise.all(modules.filter(mod => mod.name !== "Reports & Dashboard").map(async mod => {
             const saved = await requestHost<{records:Row[];revision:number}>({method:"loadModuleData",moduleName:mod.name});
             return [mod.name,saved] as const;
           }));
