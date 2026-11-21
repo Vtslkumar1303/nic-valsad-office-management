@@ -160,6 +160,9 @@ export default function App() {
   const [workbookLoading,setWorkbookLoading]=useState(true);
   const [workbookError,setWorkbookError]=useState("");
   const [search,setSearch]=useState("");
+  const [sortKey,setSortKey]=useState("");
+  const [sortDir,setSortDir]=useState<"asc"|"desc">("asc");
+  const [statusFilter,setStatusFilter]=useState("All");
   const [showForm,setShowForm]=useState(false);
   const [form,setForm]=useState<Row>({});
   const [mobileOpen,setMobileOpen]=useState(false);
@@ -226,10 +229,29 @@ export default function App() {
 
   const selected=modules.find(m=>m.name===active);
   const rows=selected ? records[selected.name] || [] : [];
-  const filtered=useMemo(()=>rows.filter(row=>Object.values(row).join(" ").toLowerCase().includes(search.toLowerCase())),[rows,search]);
+  const filtered=useMemo(()=>{
+    const matched=rows.filter(row=>Object.values(row).join(" ").toLowerCase().includes(search.toLowerCase())&&(statusFilter==="All"||String(row.status||"").toLowerCase()===statusFilter.toLowerCase()));
+    if(!sortKey)return matched;
+    return [...matched].sort((a,b)=>{const av=String(a[sortKey]??"").trim(),bv=String(b[sortKey]??"").trim();const an=Number(av),bn=Number(bv);const cmp=av&&bv&&Number.isFinite(an)&&Number.isFinite(bn)?an-bn:av.localeCompare(bv,undefined,{numeric:true,sensitivity:"base"});return sortDir==="asc"?cmp:-cmp;});
+  },[rows,search,statusFilter,sortKey,sortDir]);
+  const sortBy=(key:string)=>{if(sortKey===key)setSortDir(d=>d==="asc"?"desc":"asc");else{setSortKey(key);setSortDir("asc");}};
+  const agingAlert=(row:Row)=>{
+    if(!row.reportedDate&&!row.description)return "";
+    if(row.status==="Resolved")return "Resolved";
+    if(row.status==="Technical Guidance Given")return "Guidance Given";
+    const due=row.nextActionDueDate?new Date(row.nextActionDueDate):null;
+    const last=row.lastFollowupDate?new Date(row.lastFollowupDate):null;
+    const today=new Date();today.setHours(0,0,0,0);
+    if(due&&!Number.isNaN(due.getTime())){due.setHours(0,0,0,0);const diff=Math.floor((due.getTime()-today.getTime())/86400000);return diff<0?"Overdue ("+Math.abs(diff)+"d)":diff===0?"Due Today":diff<=3?"Due Soon ("+diff+"d)":"Upcoming ("+diff+"d)";}
+    if(last&&!Number.isNaN(last.getTime())){last.setHours(0,0,0,0);const diff=Math.floor((today.getTime()-last.getTime())/86400000);return diff>7?"Follow-up Overdue ("+diff+"d)":"Followed Up ("+diff+"d ago)";}
+    const reported=new Date(row.reportedDate);if(!Number.isNaN(reported.getTime()))return "Pending ("+Math.floor((today.getTime()-reported.getTime())/86400000)+"d)";
+    return "Pending";
+  };
+  const rowAlert=(row:Row)=>row.followupAgingAlert||agingAlert(row);
+  const alertClass=(value:string)=>value.toLowerCase().includes("overdue")?"alert-overdue":value==="Due Today"||value.includes("Due Soon")?"alert-due":value==="Resolved"?"alert-resolved":value==="Guidance Given"?"alert-guidance":"alert-pending";
 
   function navigate(label:string) {
-    setActive(label);setSearch("");setMobileOpen(false);setShowForm(false);
+    setActive(label);setSearch("");setStatusFilter("All");setSortKey("");setSortDir("asc");setMobileOpen(false);setShowForm(false);
   }
   function saveRecord(e:FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -287,8 +309,8 @@ export default function App() {
 <BarChart title="iRAD task updates" subtitle="Daily entries by month" items={monthCounts(records["iRAD Project Update"],"date")}/>
 </div><div className="section-heading chart-subheading"><div><h2>Network speed-test overview</h2><p>Average download and upload speeds (Mbps).</p></div></div><div className="stats-grid speed-stats">{[{label:"Average download",values:records["Network Management"].map(r=>Number(r.downloadMbps)).filter(n=>Number.isFinite(n)&&n>0)},{label:"Average upload",values:records["Network Management"].map(r=>Number(r.uploadMbps)).filter(n=>Number.isFinite(n)&&n>0)}].map(x=><div className="stat-card" key={x.label}><div className="stat-top"><span>{x.label}</span><div className="stat-icon"><Activity size={18}/></div></div><div className="stat-value">{x.values.length?(x.values.reduce((a,b)=>a+b,0)/x.values.length).toFixed(1):"—"}</div><div className="stat-note">Mbps · based on available entries</div></div>)}</div></div>}
           {active==="Reports & Dashboard"&&<div className="report-note"><Gauge size={18}/><div><b>Report preview</b><span>These are sample report definitions. Live aggregation and scheduled exports will be connected after the database and permissions layer is implemented.</span></div></div>}
-          <div className="table-toolbar"><div className="search-wrap"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={`Search ${selected.short.toLowerCase()}...`} aria-label="Search records"/></div><div className="toolbar-actions"><span className="result-count">{filtered.length} records</span><button className="secondary-button" onClick={exportCsv}><ArrowDownToLine size={15}/> Export CSV</button></div></div>
-          <div className="data-table-wrap"><table className="data-table"><thead><tr>{selected.columns.map(col=><th key={col.key}>{col.label}</th>)}</tr></thead><tbody>{filtered.map((row,i)=><tr key={i}>{selected.columns.map(col=><td key={col.key}>{col.key==="status"||col.key==="approval"||col.key==="priority"||col.key==="severity"?<Status value={row[col.key]}/>:<span>{row[col.key]||"—"}</span>}</td>)}</tr>)}</tbody></table>{filtered.length===0&&<div className="table-empty"><Filter size={22}/><b>No records found</b><span>Try changing your search or add a new record.</span></div>}</div>
+          <div className="table-toolbar"><div className="search-wrap"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={`Search ${selected.short.toLowerCase()}...`} aria-label="Search records"/></div><div className="toolbar-actions">{selected.columns.some(col=>col.key==="status")&&<select className="table-filter" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option>All</option>{[...new Set(rows.map(r=>r.status).filter(Boolean))].sort().map(s=><option key={s}>{s}</option>)}</select>}<span className="result-count">{filtered.length} records</span><button className="secondary-button" onClick={exportCsv}><ArrowDownToLine size={15}/> Export CSV</button></div></div>
+          <div className="data-table-wrap"><table className="data-table"><thead><tr>{selected.columns.map(col=><th key={col.key}><button className="sort-header" onClick={()=>sortBy(col.key)}>{col.label}{sortKey===col.key?(sortDir==="asc"?" ↑":" ↓"):" ↕"}</button></th>)}</tr></thead><tbody>{filtered.map((row,i)=>{const alert=rowAlert(row);return <tr key={i} className={alert?alertClass(alert):""}>{selected.columns.map(col=><td key={col.key}>{col.key==="status"||col.key==="approval"||col.key==="priority"||col.key==="severity"?<Status value={row[col.key]}/>:col.key==="followupAgingAlert"?<span className={"alert-pill "+alertClass(alert)}>{alert||"—"}</span>:<span>{row[col.key]||"—"}</span>}</td>)}</tr>})}</tbody></table>{filtered.length===0&&<div className="table-empty"><Filter size={22}/><b>No records found</b><span>Try changing your search or add a new record.</span></div>}</div>
           <div className="table-footnote"><ShieldCheck size={14}/> Imported from the original Excel workbook · New entries remain browser-session only</div>
         </>:active==="Calendar"||active==="Staff"||active==="Settings"?<>
           <div className="welcome-row"><div><div className="eyebrow">WORKSPACE</div><h1>{active}</h1><p>{active==="Calendar"?"A combined calendar view will bring together VCs, events and staff movements.":active==="Staff"?"Staff directory and role-based access will be managed here.":"Application preferences, user access and security controls."}</p></div></div>
