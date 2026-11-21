@@ -166,7 +166,23 @@ export default function App() {
   const [toast,setToast]=useState("");
   const [noticeOpen,setNoticeOpen]=useState(true);
 
-  useEffect(()=>{\n    let cancelled=false;\n    (async()=>{\n      try {\n        const response=await fetch("https://raw.githubusercontent.com/Vtslkumar1303/nic-valsad-office-management/main/Valsad%20NIC%20Daily%20update.xlsx");\n        if(!response.ok) throw new Error(`Workbook fetch failed (${response.status})`);\n        const bytes=await response.arrayBuffer();\n        const workbook=XLSX.read(bytes,{type:"array",cellDates:false});\n        const sheets:Record<string,(string|number|boolean)[][]>={};\n        workbook.SheetNames.forEach(name=>{sheets[name]=XLSX.utils.sheet_to_json(workbook.Sheets[name],{header:1,defval:"",raw:false}) as (string|number|boolean)[][];});\n        if(!cancelled){setWorkbookSheets(sheets);setSelectedSheet(workbook.SheetNames[0]||"");setWorkbookLoading(false);}\n      } catch(error){if(!cancelled){setWorkbookError(error instanceof Error?error.message:"Unable to load workbook");setWorkbookLoading(false);}}\n    })();\n    return ()=>{cancelled=true;};\n  },[]);\n\n  const selected=modules.find(m=>m.name===active);
+  useEffect(()=>{
+    let cancelled=false;
+    (async()=>{
+      try {
+        const response=await fetch("https://raw.githubusercontent.com/Vtslkumar1303/nic-valsad-office-management/main/Valsad%20NIC%20Daily%20update.xlsx");
+        if(!response.ok) throw new Error(`Workbook fetch failed (${response.status})`);
+        const bytes=await response.arrayBuffer();
+        const workbook=XLSX.read(bytes,{type:"array",cellDates:false});
+        const sheets:Record<string,(string|number|boolean)[][]>={};
+        workbook.SheetNames.forEach(name=>{sheets[name]=XLSX.utils.sheet_to_json(workbook.Sheets[name],{header:1,defval:"",raw:false}) as (string|number|boolean)[][];});
+        if(!cancelled){setWorkbookSheets(sheets);setSelectedSheet(workbook.SheetNames[0]||"");setWorkbookLoading(false);}
+      } catch(error){if(!cancelled){setWorkbookError(error instanceof Error?error.message:"Unable to load workbook");setWorkbookLoading(false);}}
+    })();
+    return ()=>{cancelled=true;};
+  },[]);
+
+  const selected=modules.find(m=>m.name===active);
   const rows=selected ? records[selected.name] || [] : [];
   const filtered=useMemo(()=>rows.filter(row=>Object.values(row).join(" ").toLowerCase().includes(search.toLowerCase())),[rows,search]);
 
