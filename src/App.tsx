@@ -1,4 +1,5 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
 import {
   Activity, ArrowDownToLine, ArrowLeft, ArrowUpRight, Bell, BookOpen,
   CalendarDays, CheckCircle2, ChevronDown, CircleHelp, ClipboardList,
@@ -123,13 +124,14 @@ const modules: Module[] = [
 
 const navItems = [
   { label:"Overview", icon:LayoutDashboard },
+  { label:"Master Workbook", icon:BookOpen },
   { label:"All modules", icon:ClipboardList },
   { label:"Calendar", icon:CalendarDays },
   { label:"Staff", icon:Users },
   { label:"Settings", icon:Settings }
 ];
 
-const initialRecords: Record<string, Row[]> = Object.fromEntries(modules.map(m => [m.name,m.samples]));
+const initialRecords: Record<string, Row[]> = Object.fromEntries(modules.map(m => [m.name,[]]));
 
 function Status({value}:{value?:string}) {
   if (!value) return <span className="muted">—</span>;
@@ -153,6 +155,10 @@ const monthCounts=(rows:Row[],dateKey:string)=>{const names=["Jan","Feb","Mar","
 export default function App() {
   const [active,setActive]=useState("Overview");
   const [records,setRecords]=useState<Record<string,Row[]>>(initialRecords);
+  const [workbookSheets,setWorkbookSheets]=useState<Record<string,(string|number|boolean)[][]>>({});
+  const [selectedSheet,setSelectedSheet]=useState("");
+  const [workbookLoading,setWorkbookLoading]=useState(true);
+  const [workbookError,setWorkbookError]=useState("");
   const [search,setSearch]=useState("");
   const [showForm,setShowForm]=useState(false);
   const [form,setForm]=useState<Row>({});
@@ -160,7 +166,7 @@ export default function App() {
   const [toast,setToast]=useState("");
   const [noticeOpen,setNoticeOpen]=useState(true);
 
-  const selected=modules.find(m=>m.name===active);
+  useEffect(()=>{\n    let cancelled=false;\n    (async()=>{\n      try {\n        const response=await fetch("https://raw.githubusercontent.com/Vtslkumar1303/nic-valsad-office-management/main/Valsad%20NIC%20Daily%20update.xlsx");\n        if(!response.ok) throw new Error(`Workbook fetch failed (${response.status})`);\n        const bytes=await response.arrayBuffer();\n        const workbook=XLSX.read(bytes,{type:"array",cellDates:false});\n        const sheets:Record<string,(string|number|boolean)[][]>={};\n        workbook.SheetNames.forEach(name=>{sheets[name]=XLSX.utils.sheet_to_json(workbook.Sheets[name],{header:1,defval:"",raw:false}) as (string|number|boolean)[][];});\n        if(!cancelled){setWorkbookSheets(sheets);setSelectedSheet(workbook.SheetNames[0]||"");setWorkbookLoading(false);}\n      } catch(error){if(!cancelled){setWorkbookError(error instanceof Error?error.message:"Unable to load workbook");setWorkbookLoading(false);}}\n    })();\n    return ()=>{cancelled=true;};\n  },[]);\n\n  const selected=modules.find(m=>m.name===active);
   const rows=selected ? records[selected.name] || [] : [];
   const filtered=useMemo(()=>rows.filter(row=>Object.values(row).join(" ").toLowerCase().includes(search.toLowerCase())),[rows,search]);
 
@@ -195,11 +201,11 @@ export default function App() {
     </aside>
 
     <main className="main">
-      <header className="topbar"><button className="menu-button" onClick={()=>setMobileOpen(true)} aria-label="Open menu"><Menu/></button><div className="breadcrumb">Workspace <span>/</span> <b>{active}</b></div><div className="top-actions"><span className="environment"><i/> DEMO MODE</span><button className="icon-button" aria-label="Notifications"><Bell size={19}/><i/></button><div className="top-avatar">AD</div></div></header>
+      <header className="topbar"><button className="menu-button" onClick={()=>setMobileOpen(true)} aria-label="Open menu"><Menu/></button><div className="breadcrumb">Workspace <span>/</span> <b>{active}</b></div><div className="top-actions"><span className="environment"><i/> WORKBOOK IMPORT</span><button className="icon-button" aria-label="Notifications"><Bell size={19}/><i/></button><div className="top-avatar">AD</div></div></header>
       <section className="content">
         {active==="Overview"||active==="All modules" ? <>
-          <div className="welcome-row"><div><div className="eyebrow">DISTRICT INFORMATICS OFFICE</div><h1>{active==="Overview"?"Office overview":"All office modules"}</h1><p>One workspace for coordinating district-level e-Governance operations.</p></div><div className="date-chip"><CalendarDays size={16}/>{new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}</div></div>
-          {noticeOpen&&<div className="notice"><div className="notice-icon"><ShieldCheck size={19}/></div><div><b>Development environment</b><span>Fictional sample records only. Entries added here remain in this browser session and are not saved to a database.</span></div><button className="notice-dismiss" onClick={()=>setNoticeOpen(false)} aria-label="Dismiss notice"><X size={16}/></button></div>}
+          <div className="welcome-row"><div><div className="eyebrow">DISTRICT INFORMATICS OFFICE</div><h1>{active==="Overview"?"Office overview":"All office modules"}</h1><p>One workspace for coordinating district-level e-Governance operations. Open Master Workbook to view the imported source records.</p></div><div className="date-chip"><CalendarDays size={16}/>{new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}</div></div>
+          {noticeOpen&&<div className="notice"><div className="notice-icon"><ShieldCheck size={19}/></div><div><b>Master workbook connected</b><span>Source worksheets are loaded directly from the Excel file committed to this repository.</span></div><button className="notice-dismiss" onClick={()=>setNoticeOpen(false)} aria-label="Dismiss notice"><X size={16}/></button></div>}
           <div className="section-heading"><div><h2>At a glance</h2><p>Sample counters based on the current demonstration data.</p></div><button className="text-button" onClick={()=>navigate("Reports & Dashboard")}>View reports <ArrowUpRight size={15}/></button></div>
           <div className="stats-grid">{[
             {label:"RFMS queries",value:records["RFMS Query Management"].length,icon:ClipboardList},
@@ -211,7 +217,7 @@ export default function App() {
           <div className="charts-grid"><BarChart title="Records by workspace" subtitle="Entries currently loaded in each module" items={modules.filter(m=>m.name!=="Reports & Dashboard").map(m=>({label:m.short,value:records[m.name]?.length||0}))}/><DonutChart title="RFMS query status" subtitle="Distribution of tracked queries" items={Object.entries(countBy(records["RFMS Query Management"],"status")).map(([label,value],i)=>({label,value,color:["#477da5","#d5a24c","#4b9a79","#c56c66","#8c7bb5"][i%5]}))}/></div>
           <div className="section-heading modules-heading"><div><h2>Office modules</h2><p>Open a workspace to view and manage its demonstration records.</p></div><span className="module-count">11 MODULES</span></div>
           <div className="module-grid">{modules.map(mod=><button className="module-card" key={mod.name} onClick={()=>navigate(mod.name)}><div className="module-card-top"><div className="module-icon"><mod.icon size={20}/></div><ArrowUpRight size={17} className="card-arrow"/></div><h3>{mod.name}</h3><p>{mod.description}</p><div className="module-footer"><span>{records[mod.name].length} demo records</span><span className="open-label">Open workspace <ArrowUpRight size={13}/></span></div></button>)}</div>
-        </>:selected ? <>
+        </>:active==="Master Workbook" ? <>{<div className="workspace-heading"><div className="eyebrow">SOURCE DATA</div><div className="workspace-title-row"><div><h1>Master Workbook</h1><p>Read-only view of all worksheets from Valsad NIC Daily update.xlsx.</p></div></div></div>}{workbookLoading?<div className="placeholder-panel"><h2>Loading workbook…</h2><p>Reading the Excel worksheets.</p></div>:workbookError?<div className="placeholder-panel"><h2>Workbook could not be loaded</h2><p>{workbookError}</p><button className="secondary-button" onClick={()=>window.location.reload()}>Retry</button></div>:<><div className="workspace-summary"><div><span className="summary-label">WORKSHEETS</span><strong>{Object.keys(workbookSheets).length}</strong></div><div><span className="summary-label">SELECTED SHEET ROWS</span><strong>{workbookSheets[selectedSheet]?.length||0}</strong></div><div><span className="summary-label">DATA SOURCE</span><strong className="demo-source">Excel workbook</strong></div></div><div className="table-toolbar"><div className="search-wrap"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search this worksheet..." aria-label="Search worksheet"/></div><div className="toolbar-actions"><select value={selectedSheet} onChange={e=>{setSelectedSheet(e.target.value);setSearch("");}} aria-label="Select worksheet">{Object.keys(workbookSheets).map(name=><option key={name} value={name}>{name}</option>)}</select><span className="result-count">{(workbookSheets[selectedSheet]||[]).length} rows</span></div></div><div className="data-table-wrap"><table className="data-table"><thead><tr><th>Excel row</th>{Array.from({length:Math.max(0,...(workbookSheets[selectedSheet]||[]).map(r=>r.length))},(_,i)=><th key={i}>{XLSX.utils.encode_col(i)}</th>)}</tr></thead><tbody>{(workbookSheets[selectedSheet]||[]).map((row,index)=>({row,index})).filter(x=>x.row.some(cell=>String(cell??"").toLowerCase().includes(search.toLowerCase()))).map(({row,index})=><tr key={index}><td>{index+1}</td>{Array.from({length:Math.max(0,...(workbookSheets[selectedSheet]||[]).map(r=>r.length))},(_,i)=><td key={i}><span>{String(row[i]??"")||"—"}</span></td>)}</tr>)}</tbody></table>{(workbookSheets[selectedSheet]||[]).length===0&&<div className="table-empty"><b>No rows in this worksheet</b></div>}</div><div className="table-footnote"><ShieldCheck size={14}/> Source worksheet values · read-only view · all original worksheet columns retained</div></>}</>:selected ? <>
           <div className="workspace-heading"><button className="back-link" onClick={()=>navigate("Overview")}><ArrowLeft size={15}/> Overview</button><div className="workspace-title-row"><div><div className="eyebrow">OFFICE WORKSPACE</div><h1>{selected.name}</h1><p>{selected.description}</p></div>{selected.fields.length>0&&<button className="primary-button" onClick={()=>{setForm({});setShowForm(true)}}><Plus size={16}/> Add record</button>}</div></div>
           <div className="workspace-summary"><div><span className="summary-label">TOTAL RECORDS</span><strong>{rows.length}</strong></div><div><span className="summary-label">FILTERED RESULTS</span><strong>{filtered.length}</strong></div><div><span className="summary-label">DATA SOURCE</span><strong className="demo-source">Demo session</strong></div></div>
           {active==="Reports & Dashboard"&&<div className="report-visuals"><div className="section-heading"><div><h2>Office performance reports</h2><p>Charts recalculate from records in this browser session.</p></div></div><div className="charts-grid">
