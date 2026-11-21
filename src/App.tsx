@@ -225,7 +225,7 @@ export default function App() {
         imported["Poll Day Dashboard"]=(sheets["Sheet7"]||[]).slice(2).filter(row=>asText(row[1])!==""&&row.slice(1,14).some(v=>asText(v)!=="")&&!asText(row[2]).toLowerCase().startsWith("column")).map(row=>({authorityType:asText(row[1]),male:asText(row[2]),female:asText(row[3]),"0945":asText(row[4]),"1030":asText(row[5]),"1200":asText(row[6]),"0100":asText(row[7]),"0200":asText(row[8]),"0300":asText(row[9]),"0400":asText(row[10]),"0500":asText(row[11]),"0600":asText(row[12]),"0700":asText(row[13])}));
         imported["ICT Asset Management"]=(sheets["NIC Valsad Stock"]||[]).filter(row=>row.some(v=>asText(v)!=="")).map(row=>({register:asText(row[0]),source:asText(row[1])}));
         imported["GoG Projects"]=(sheets["GoG Projects"]||[]).filter(row=>row.some(v=>asText(v)!=="")).map(row=>({reference:row.map(asText).filter(Boolean).join(" | ")}));
-        if(!cancelled){setWorkbookSheets(sheets);setRecords(imported);setSelectedSheet(workbook.SheetNames[0]||"");setWorkbookLoading(false);}
+        if(!cancelled){let saved:Record<string,Row[]>|null=null;try{const raw=localStorage.getItem("nic-valsad-records");if(raw)saved=JSON.parse(raw);}catch{}setWorkbookSheets(sheets);setRecords(saved?{...imported,...saved}:imported);setSelectedSheet(workbook.SheetNames[0]||"");setWorkbookLoading(false);}
       } catch(error){if(!cancelled){setWorkbookError(error instanceof Error?error.message:"Unable to load workbook");setWorkbookLoading(false);}}
     })();
     return ()=>{cancelled=true;};
