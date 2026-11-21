@@ -175,7 +175,23 @@ export default function App() {
         const bytes=await response.arrayBuffer();
         const workbook=XLSX.read(bytes,{type:"array",cellDates:false});
         const sheets:Record<string,(string|number|boolean)[][]>={};
-        workbook.SheetNames.forEach(name=>{sheets[name]=XLSX.utils.sheet_to_json(workbook.Sheets[name],{header:1,defval:"",raw:false}) as (string|number|boolean)[][];});
+        workbook.SheetNames.forEach(name=>{
+          const sheet=workbook.Sheets[name];
+          const ref=sheet["!ref"];
+          if(!ref){sheets[name]=[];return;}
+          const range=XLSX.utils.decode_range(ref);
+          const rows:(string|number|boolean)[][]=[];
+          for(let r=range.s.r;r<=range.e.r;r++){
+            const row:(string|number|boolean)[]=[];
+            for(let col=range.s.c;col<=range.e.c;col++){
+              const cell=sheet[XLSX.utils.encode_cell({r,c:col})];
+              const value=cell ? (cell.w ?? (cell.v instanceof Date ? cell.v.toLocaleDateString() : cell.v ?? "")) : "";
+              row.push(typeof value==="string"||typeof value==="number"||typeof value==="boolean"?value:String(value));
+            }
+            if(row.some(value=>String(value).trim()!=="")) rows.push(row);
+          }
+          sheets[name]=rows;
+        });
         if(!cancelled){setWorkbookSheets(sheets);setSelectedSheet(workbook.SheetNames[0]||"");setWorkbookLoading(false);}
       } catch(error){if(!cancelled){setWorkbookError(error instanceof Error?error.message:"Unable to load workbook");setWorkbookLoading(false);}}
     })();
