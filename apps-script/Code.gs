@@ -102,8 +102,9 @@ function saveModuleData(moduleName, records, expectedRevision) {
       now,
       user
     ]);
-    if (data.getLastRow() > 1) data.getRange(2, 1, data.getLastRow() - 1, 5).clearContent();
     const all = keep.concat(replacement);
+    data.clearContents();
+    data.getRange(1, 1, 1, 5).setValues([["module", "recordId", "payload", "updatedAt", "updatedBy"]]);
     if (all.length) data.getRange(2, 1, all.length, 5).setValues(all);
     const nextRevision = currentRevision + 1;
     if (metaIndex >= 0) meta.getRange(metaIndex + 2, 2).setValue(nextRevision);
@@ -123,7 +124,9 @@ function assertAuthorized_() {
   if (!email) throw new Error("Google could not verify your signed-in email. Ask the spreadsheet owner to review the deployment access settings.");
   const file = DriveApp.getFileById(CONFIG.SPREADSHEET_ID);
   const editors = file.getEditors().map(user => String(user.getEmail() || "").trim().toLowerCase());
-  if (!editors.includes(email)) throw new Error("Access denied. Ask the spreadsheet owner to grant Editor access to the NIC office database.");
+  const owner = file.getOwner();
+  const ownerEmail = owner ? String(owner.getEmail() || "").trim().toLowerCase() : "";
+  if (email !== ownerEmail && !editors.includes(email)) throw new Error("Access denied. Ask the spreadsheet owner to grant Editor access to the NIC office database.");
   return email;
 }
 
