@@ -192,7 +192,33 @@ export default function App() {
           }
           sheets[name]=rows;
         });
-        if(!cancelled){setWorkbookSheets(sheets);setSelectedSheet(workbook.SheetNames[0]||"");setWorkbookLoading(false);}
+        const asText=(v:unknown)=>String(v??"").trim();
+        const findHeader=(name:string,needle:string)=>{const data=sheets[name]||[];return data.findIndex(row=>row.some(cell=>asText(cell).toLowerCase()===needle.toLowerCase()));};
+        const fromHeader=(name:string,headerNeedle:string,keys:string[],offset=0,filter?:(row:(string|number|boolean)[])=>boolean)=>{
+          const data=sheets[name]||[];const h=findHeader(name,headerNeedle);if(h<0)return [];
+          return data.slice(h+1+offset).filter(row=>row.some(v=>asText(v)!=="")&&(!filter||filter(row))).map(row=>Object.fromEntries(keys.map((key,i)=>[key,asText(row[i])])) as Row);
+        };
+        const imported:Record<string,Row[]>={...initialRecords};
+        imported["RFMS Query Management"]=fromHeader("Pending Task ","Reported Date",["reportedDate","project","queryReportedByOffice","rfmsNo","description","status","media","remarks","followupHistory","diaRemarks","lastFollowupDate","nextActionDueDate","followupAgingAlert"],0,row=>!asText(row[0]).toUpperCase().startsWith("YEAR"));
+        imported["Pending Task (Backup)"]=fromHeader("Pending Task (Backup)","Reported Date",["reportedDate","project","queryReportedByOffice","rfmsNo","description","status","media","dioRemarks","followupUpdate","diaRemarks","column12","column11"],0,row=>!asText(row[0]).toUpperCase().startsWith("YEAR"));
+        imported["Daily Work Diary"]=(sheets["Daily Task Entry"]||[]).filter(row=>row.some(v=>asText(v)!=="")).map(row=>({date:asText(row[0]),title:asText(row[1]),details:asText(row[2]),update2:asText(row[3]),update3:asText(row[4]),update4:asText(row[5]),update5:asText(row[6]),update6:asText(row[7])}));
+        imported["Seva Setu Management"]=fromHeader("Seva Setu 2.0","Email Received Date",["srNo","emailReceivedDate","officeDept","scheduledDates","mamlatdarUsers","talukaPanchayatUsers","remarks","scheduleEntryDone"],0,row=>row.slice(0,8).some(v=>asText(v)!==""));
+        imported["Events & Training"]=fromHeader("Events","Month, Year",["monthYear","dateOfEvent","event","category","venue"]);
+        imported["VC Management"]=fromHeader("VC LOG","SL",["sl","vcidPlace","date","time","duration","subject","vcLink","remarks","forCollectorOfficeNic"]);
+        const net=sheets["Network related call logs"]||[];const netHead=net.findIndex(row=>asText(row[0]).toLowerCase()==="sr. no.");
+        imported["Network Management"]=netHead>=0?net.slice(netHead+1).filter(row=>row.slice(0,10).some(v=>asText(v)!=="")).map(row=>({srNo:asText(row[0]),dateComplaint:asText(row[1]),department:asText(row[2]),category:asText(row[3]),problemDescription:asText(row[4]),dktNo:asText(row[5]),dateResolved:asText(row[6]),actionTaken:asText(row[7]),status:asText(row[8]),remarks:asText(row[9])})): [];
+        imported["iRAD Project Update"]=fromHeader("iRAD Project Update","Date",["date","todaysTask","descriptionTask","timeDuration","remarks"]);
+        imported["Staff Tour & Attendance"]=fromHeader("NIC Staff TourAttendance ","Sr. No",["srNo","date","reason","reportedBy"]);
+        imported["Inactivation Logs"]=fromHeader("Inactivation Logs","Column 9",["column9","userId","fullName","loginName","column1","officeName","designation","inactiveDate","lastLogin","mob"]);
+        const coll=sheets["Sheet9"]||[];const collHead=coll.findIndex(row=>asText(row[3]).toLowerCase()==="district");
+        const collectionRows=collHead>=0?coll.slice(collHead+1).filter(row=>row.slice(3,7).some(v=>asText(v)!=="")&&!asText(row[5]).toLowerCase().startsWith("total")).map(row=>({district:asText(row[3]),dioDia:asText(row[4]),collectionStatus:asText(row[5]),amount:asText(row[6])})): [];
+        const requestHead=coll.findIndex(row=>asText(row[2]).toLowerCase()==="request id");
+        const requestRows=requestHead>=0?coll.slice(requestHead+1).filter(row=>row.slice(1,14).some(v=>asText(v)!=="")).map(row=>({district:"",dioDia:"",collectionStatus:"",amount:"",requestSrNo:asText(row[1]),requestId:asText(row[2]),contact:asText(row[3]),account:asText(row[4]),category:asText(row[5]),title:asText(row[6]),createdTime:asText(row[7]),completedTime:asText(row[8]),age:asText(row[9]),requestStatus:asText(row[10]),serialNo:asText(row[11]),requestRemarks:asText(row[12]),confirm:asText(row[13])})): [];
+        imported["Collection Status"]=[...collectionRows,...requestRows];
+        imported["Poll Day Dashboard"]=(sheets["Sheet7"]||[]).slice(2).filter(row=>asText(row[1])!==""&&row.slice(1,14).some(v=>asText(v)!=="")&&!asText(row[2]).toLowerCase().startsWith("column")).map(row=>({authorityType:asText(row[1]),male:asText(row[2]),female:asText(row[3]),"0945":asText(row[4]),"1030":asText(row[5]),"1200":asText(row[6]),"0100":asText(row[7]),"0200":asText(row[8]),"0300":asText(row[9]),"0400":asText(row[10]),"0500":asText(row[11]),"0600":asText(row[12]),"0700":asText(row[13])}));
+        imported["ICT Asset Management"]=(sheets["NIC Valsad Stock"]||[]).filter(row=>row.some(v=>asText(v)!=="")).map(row=>({register:asText(row[0]),source:asText(row[1])}));
+        imported["GoG Projects"]=(sheets["GoG Projects"]||[]).filter(row=>row.some(v=>asText(v)!=="")).map(row=>({reference:row.map(asText).filter(Boolean).join(" | ")}));
+        if(!cancelled){setWorkbookSheets(sheets);setRecords(imported);setSelectedSheet(workbook.SheetNames[0]||"");setWorkbookLoading(false);}
       } catch(error){if(!cancelled){setWorkbookError(error instanceof Error?error.message:"Unable to load workbook");setWorkbookLoading(false);}}
     })();
     return ()=>{cancelled=true;};
