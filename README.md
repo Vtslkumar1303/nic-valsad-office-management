@@ -1,42 +1,50 @@
 # NIC Valsad Office Management
 
-A self-hostable office workflow application for NIC Valsad District. Source code is maintained in GitHub; the application is designed to run on an approved server with PostgreSQL.
+A React + TypeScript office-management interface with a Google Sheets data layer behind an authenticated Google Apps Script gateway.
 
-## Modules
-- RFMS Query Management
+## Application modules
+- RFMS Query Management and backup
 - Daily Work Diary
 - VC Management
 - Network Management
 - Seva Setu Management
-- Reports & Dashboard
-- ICT Asset Management
-- Staff Tour & Attendance
 - Events & Training
+- iRAD Project Update
+- Staff Tour & Attendance
+- Inactivation Logs
+- Collection Status and Poll Day Dashboard
+- ICT Asset and GoG project reference registers
+- Reports & Dashboard
 
-## Technology
-- React + TypeScript + Vite
-- Express + TypeScript API
-- PostgreSQL database
-- SQL migrations in `database/migrations`
-- GitHub as the source of truth
+## Architecture
+- Frontend: React + TypeScript + Vite, hosted as a static GitHub Pages UI shell.
+- Authentication and API gateway: Google Apps Script HTML Service.
+- Database: the configured Google spreadsheet.
+- Access control: each request verifies the signed-in Google account and requires spreadsheet ownership or Editor permission.
+- Writes: module records are stored in private support tabs using a script lock and optimistic revision checks.
 
-## Local development
-Requirements: Node.js 20+, npm, PostgreSQL 15+.
+The static GitHub Pages URL is not the authenticated entry point. Users must open the deployed Apps Script web-app URL. Direct access to GitHub Pages does not provide data access.
 
-1. Copy `.env.example` to `.env` and set local values.
-2. Create an empty PostgreSQL database.
-3. Apply SQL migrations in filename order using psql.
-4. Install dependencies: `npm install`
-5. Start frontend and API: `npm run dev`
+## Google Apps Script setup
+See [apps-script/README.md](apps-script/README.md). The Apps Script project files are in `apps-script/`.
 
-The current milestone provides the UI foundation and API health endpoint. Authentication and protected CRUD APIs are the next implementation milestone; do not deploy with real office data until these are completed and reviewed.
+The Apps Script manifest is configured to execute as the user accessing the web app. Never change this to execute as the script owner, and never allow anonymous access.
 
-## Security
-- Never commit passwords, tokens, database URLs, VC meeting URLs, personal data, or operational records.
-- Use fictional demo content only in development.
-- Keep the repository private.
-- Production deployment must follow NIC/MeitY security, hosting, access-control, backup, and audit requirements.
-- Do not expose database credentials or privileged API keys in frontend code.
+## Development
+Requirements: Node.js 20+ and npm.
 
-## Project status
-Milestone 1: repository foundation, responsive module dashboard, API health endpoint, and initial relational schema.
+```bash
+npm install
+npm run dev:web
+npm run build
+```
+
+The repository includes an Express API scaffold from an earlier milestone; it is not the active data path for the Google Sheets deployment.
+
+## Security and governance
+- Do not commit spreadsheets, exports, passwords, tokens, meeting links, access codes, or personal/operational records.
+- Share the spreadsheet only with staff who are formally authorised to access the records.
+- Only spreadsheet Editors can use the application; viewer access is intentionally not sufficient.
+- Obtain NIC/MeitY and data-owner approval before storing official or personal data in a personal Google account.
+- This implementation is a prototype and has not yet been deployed or security-tested for production use.
+- The workbook was removed from the latest public revision. Earlier Git history may still contain it; purge historical copies before considering the data confidential.
