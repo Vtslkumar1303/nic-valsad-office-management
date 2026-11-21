@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
+import { requestHost } from "./googleBridge";
 import {
   Activity, ArrowDownToLine, ArrowLeft, ArrowUpRight, Bell, BookOpen,
   CalendarDays, CheckCircle2, ChevronDown, CircleHelp, ClipboardList,
@@ -155,6 +156,7 @@ const monthCounts=(rows:Row[],dateKey:string)=>{const names=["Jan","Feb","Mar","
 export default function App() {
   const [active,setActive]=useState("Overview");
   const [records,setRecords]=useState<Record<string,Row[]>>(initialRecords);
+  const [revisions,setRevisions]=useState<Record<string,number>>({});
   const [workbookSheets,setWorkbookSheets]=useState<Record<string,(string|number|boolean)[][]>>({});
   const [selectedSheet,setSelectedSheet]=useState("");
   const [workbookLoading,setWorkbookLoading]=useState(true);
@@ -177,28 +179,7 @@ export default function App() {
     let cancelled=false;
     (async()=>{
       try {
-        const response=await fetch("https://raw.githubusercontent.com/Vtslkumar1303/nic-valsad-office-management/main/Valsad%20NIC%20Daily%20update.xlsx");
-        if(!response.ok) throw new Error(`Workbook fetch failed (${response.status})`);
-        const bytes=await response.arrayBuffer();
-        const workbook=XLSX.read(bytes,{type:"array",cellDates:false});
-        const sheets:Record<string,(string|number|boolean)[][]>={};
-        workbook.SheetNames.forEach(name=>{
-          const sheet=workbook.Sheets[name];
-          const ref=sheet["!ref"];
-          if(!ref){sheets[name]=[];return;}
-          const range=XLSX.utils.decode_range(ref);
-          const rows:(string|number|boolean)[][]=[];
-          for(let r=range.s.r;r<=range.e.r;r++){
-            const row:(string|number|boolean)[]=[];
-            for(let col=range.s.c;col<=range.e.c;col++){
-              const cell=sheet[XLSX.utils.encode_cell({r,c:col})];
-              const value=cell ? (cell.w ?? (cell.v instanceof Date ? cell.v.toLocaleDateString() : cell.v ?? "")) : "";
-              row.push(typeof value==="string"||typeof value==="number"||typeof value==="boolean"?value:String(value));
-            }
-            if(row.some(value=>String(value).trim()!=="")) rows.push(row);
-          }
-          sheets[name]=rows;
-        });
+        const sheets = await requestHost<Record<string,(string|number|boolean)[][]>>({method:"getWorkbookData"});
         const asText=(v:unknown)=>String(v??"").trim();
         const findHeader=(name:string,needle:string)=>{const data=sheets[name]||[];return data.findIndex(row=>row.some(cell=>asText(cell).toLowerCase()===needle.toLowerCase()));};
         const fromHeader=(name:string,headerNeedle:string,keys:string[],offset=0,filter?:(row:(string|number|boolean)[])=>boolean)=>{
@@ -225,7 +206,20 @@ export default function App() {
         imported["Poll Day Dashboard"]=(sheets["Sheet7"]||[]).slice(2).filter(row=>asText(row[1])!==""&&row.slice(1,14).some(v=>asText(v)!=="")&&!asText(row[2]).toLowerCase().startsWith("column")).map(row=>({authorityType:asText(row[1]),male:asText(row[2]),female:asText(row[3]),"0945":asText(row[4]),"1030":asText(row[5]),"1200":asText(row[6]),"0100":asText(row[7]),"0200":asText(row[8]),"0300":asText(row[9]),"0400":asText(row[10]),"0500":asText(row[11]),"0600":asText(row[12]),"0700":asText(row[13])}));
         imported["ICT Asset Management"]=(sheets["NIC Valsad Stock"]||[]).filter(row=>row.some(v=>asText(v)!=="")).map(row=>({register:asText(row[0]),source:asText(row[1])}));
         imported["GoG Projects"]=(sheets["GoG Projects"]||[]).filter(row=>row.some(v=>asText(v)!=="")).map(row=>({reference:row.map(asText).filter(Boolean).join(" | ")}));
-        if(!cancelled){let saved:Record<string,Row[]>|null=null;try{const raw=localStorage.getItem("nic-valsad-records");if(raw)saved=JSON.parse(raw);}catch{}setWorkbookSheets(sheets);setRecords(saved?{...imported,...saved}:imported);setSelectedSheet(workbook.SheetNames[0]||"");setWorkbookLoading(false);}
+        if(!cancelled){
+          const loaded = await Promise.all(modules.map(async mod => {
+            const saved = await requestHost<{records:Row[];revision:number}>({method:"loadModuleData",moduleName:mod.name});
+            return [mod.name,saved] as const;
+          }));
+          const merged:Record<string,Row[]> = {...imported};
+          const nextRevisions:Record<string,number> = {};
+          loaded.forEach(([name,saved]) => {
+            nextRevisions[name]=saved.revision;
+            if(saved.revision>0 || saved.records.length>0) merged[name]=saved.records;
+          });
+          setWorkbookSheets(sheets);setRecords(merged);setRevisions(nextRevisions);
+          setSelectedSheet(Object.keys(sheets)[0]||"");setWorkbookLoading(false);
+        }
       } catch(error){if(!cancelled){setWorkbookError(error instanceof Error?error.message:"Unable to load workbook");setWorkbookLoading(false);}}
     })();
     return ()=>{cancelled=true;};
@@ -259,25 +253,37 @@ export default function App() {
   function navigate(label:string) {
     setActive(label);setSearch("");setStatusFilter("All");setSortKey("");setSortDir("asc");setMobileOpen(false);setShowForm(false);
   }
-  function saveRecord(e:FormEvent<HTMLFormElement>) {
+  async function persistModule(moduleName:string,nextRows:Row[]) {
+    const result=await requestHost<{revision:number;saved:number}>({
+      method:"saveModuleData",moduleName,records:nextRows,expectedRevision:revisions[moduleName]||0
+    });
+    setRevisions(current=>({...current,[moduleName]:result.revision}));
+    setRecords(current=>({...current,[moduleName]:nextRows}));
+  }
+  async function saveRecord(e:FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!selected) return;
-    setRecords(current=>{const next={...current,[selected.name]:[{...form},...(current[selected.name]||[])]};try{localStorage.setItem("nic-valsad-records",JSON.stringify(next));}catch{}return next;});
-    setForm({});setShowForm(false);setToast("Record added and saved in this browser.");
-    window.setTimeout(()=>setToast(""),3200);
+    try {
+      const nextRows=[{...form,_recordId:crypto.randomUUID()},...(records[selected.name]||[])];
+      await persistModule(selected.name,nextRows);
+      setForm({});setShowForm(false);setToast("Record saved to the shared office database.");
+    } catch(error) {
+      setToast(error instanceof Error?error.message:"Unable to save record.");
+    }
+    window.setTimeout(()=>setToast(""),4500);
   }
-  function updateCell(rowIndex:number,key:string,value:string) {
+  async function updateCell(rowIndex:number,key:string,value:string) {
     if(!selected)return;
-    setRecords(current=>{
-      const nextRows=[...(current[selected.name]||[])];
-      nextRows[rowIndex]={...nextRows[rowIndex],[key]:value};
-      const next={...current,[selected.name]:nextRows};
-      try{localStorage.setItem("nic-valsad-records",JSON.stringify(next));}catch{}
-      return next;
-    });
+    const nextRows=[...(records[selected.name]||[])];
+    nextRows[rowIndex]={...nextRows[rowIndex],[key]:value};
+    try {
+      await persistModule(selected.name,nextRows);
+      setToast("Changes saved to the shared office database.");
+    } catch(error) {
+      setToast(error instanceof Error?error.message:"Unable to save changes.");
+    }
     setEditingCell(null);
-    setToast("Cell updated and saved in this browser.");
-    window.setTimeout(()=>setToast(""),2500);
+    window.setTimeout(()=>setToast(""),4500);
   }
   function exportCsv() {
     if (!selected) return;
@@ -311,7 +317,7 @@ export default function App() {
             {label:"Network incidents",value:records["Network Management"].length,icon:Activity},
             {label:"Upcoming VCs",value:records["VC Management"].filter(r=>r.status==="Scheduled").length,icon:Video},
             {label:"ICT assets",value:records["ICT Asset Management"].length,icon:HardDrive}
-          ].map(s=><div className="stat-card" key={s.label}><div className="stat-top"><span>{s.label}</span><div className="stat-icon"><s.icon size={18}/></div></div><div className="stat-value">{s.value}</div><div className="stat-note">Demo records · not live data</div></div>)}</div>
+          ].map(s=><div className="stat-card" key={s.label}><div className="stat-top"><span>{s.label}</span><div className="stat-icon"><s.icon size={18}/></div></div><div className="stat-value">{s.value}</div><div className="stat-note">Shared office database</div></div>)}</div>
           <div className="section-heading"><div><h2>Operational insights</h2><p>Live summaries from the demonstration records.</p></div></div>
           <div className="charts-grid"><BarChart title="Records by workspace" subtitle="Entries currently loaded in each module" items={modules.filter(m=>m.name!=="Reports & Dashboard").map(m=>({label:m.short,value:records[m.name]?.length||0}))}/><DonutChart title="RFMS query status" subtitle="Distribution of tracked queries" items={Object.entries(countBy(records["RFMS Query Management"],"status")).map(([label,value],i)=>({label,value,color:["#477da5","#d5a24c","#4b9a79","#c56c66","#8c7bb5"][i%5]}))}/></div>
           <div className="section-heading modules-heading"><div><h2>Office modules</h2><p>Open a workspace to view and manage its demonstration records.</p></div><span className="module-count">11 MODULES</span></div>
@@ -330,7 +336,7 @@ export default function App() {
           {active==="Reports & Dashboard"&&<div className="report-note"><Gauge size={18}/><div><b>Report preview</b><span>These are sample report definitions. Live aggregation and scheduled exports will be connected after the database and permissions layer is implemented.</span></div></div>}
           <div className="table-toolbar"><div className="search-wrap"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={`Search ${selected.short.toLowerCase()}...`} aria-label="Search records"/></div><div className="toolbar-actions">{selected.columns.some(col=>col.key==="status")&&<select className="table-filter" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option>All</option>{[...new Set(rows.map(r=>r.status).filter(Boolean))].sort().map(s=><option key={s}>{s}</option>)}</select>}<span className="result-count">{filtered.length} records</span><button className="secondary-button" onClick={exportCsv}><ArrowDownToLine size={15}/> Export CSV</button></div></div>
           <div className="data-table-wrap"><table className="data-table"><thead><tr>{selected.columns.map(col=><th key={col.key}><button className="sort-header" onClick={()=>sortBy(col.key)}>{col.label}{sortKey===col.key?(sortDir==="asc"?" ↑":" ↓"):" ↕"}</button></th>)}</tr></thead><tbody>{filtered.map((row,i)=>{const alert=rowAlert(row);return <tr key={i} className={String(row.status||"").includes("Pending at NIC State")?"alert-nic-pending":alert?alertClass(alert):""}>{selected.columns.map(col=>{const rowIndex=rows.indexOf(row);const editing=editingCell?.rowIndex===rowIndex&&editingCell.key===col.key;return <td key={col.key} className="editable-cell" title="Click to edit"><div className="editable-value" onClick={()=>{setEditingCell({rowIndex,key:col.key});setEditValue(row[col.key]||"");}}>{editing?<input autoFocus className="cell-editor" value={editValue} onChange={e=>setEditValue(e.target.value)} onBlur={()=>updateCell(rowIndex,col.key,editValue)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();updateCell(rowIndex,col.key,editValue);}if(e.key==="Escape")setEditingCell(null);}}/>:col.key==="status"||col.key==="approval"||col.key==="priority"||col.key==="severity"?<Status value={row[col.key]}/>:col.key==="followupAgingAlert"?<span className={"alert-pill "+alertClass(alert)}>{alert||"—"}</span>:<span>{row[col.key]||"—"}</span>}</div></td>})}</tr>})}</tbody></table>{filtered.length===0&&<div className="table-empty"><Filter size={22}/><b>No records found</b><span>Try changing your search or add a new record.</span></div>}</div>
-          <div className="table-footnote"><ShieldCheck size={14}/> Click any cell to edit · Changes and new entries are saved in this browser only</div>
+          <div className="table-footnote"><ShieldCheck size={14}/> Click any cell to edit · Changes are saved to the restricted Google Sheets database</div>
         </>:active==="Calendar"||active==="Staff"||active==="Settings"?<>
           <div className="welcome-row"><div><div className="eyebrow">WORKSPACE</div><h1>{active}</h1><p>{active==="Calendar"?"A combined calendar view will bring together VCs, events and staff movements.":active==="Staff"?"Staff directory and role-based access will be managed here.":"Application preferences, user access and security controls."}</p></div></div>
           <div className="placeholder-panel"><div className="placeholder-icon">{active==="Calendar"?<CalendarDays/>:active==="Staff"?<Users/>:<Settings/>}</div><h2>{active} workspace</h2><p>This section is planned for the next implementation milestone. It will be connected to the same PostgreSQL database and permission system.</p><button className="secondary-button" onClick={()=>navigate("Overview")}><ArrowLeft size={15}/> Return to overview</button></div>
@@ -339,7 +345,7 @@ export default function App() {
       </section>
     </main>
     {mobileOpen&&<button className="backdrop" onClick={()=>setMobileOpen(false)} aria-label="Close navigation"/>}
-    {showForm&&selected&&<div className="modal-backdrop" onClick={()=>setShowForm(false)}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">NEW ENTRY</span><h2>Add {selected.short} record</h2></div><button className="icon-button" onClick={()=>setShowForm(false)} aria-label="Close form"><X size={19}/></button></div><form onSubmit={saveRecord}><div className="form-grid">{selected.fields.map(field=><label className={field.key==="details"||field.key==="notes"||field.key==="purpose"||field.key==="requirements"?"field full":"field"} key={field.key}><span>{field.label}</span>{field.key==="details"||field.key==="notes"||field.key==="purpose"||field.key==="requirements"?<textarea required={field.key==="details"} placeholder={field.placeholder} value={form[field.key]||""} onChange={e=>setForm({...form,[field.key]:e.target.value})}/>:field.options?<select value={form[field.key]||""} onChange={e=>setForm({...form,[field.key]:e.target.value})}><option value="">Select an option</option>{field.options.map(option=><option key={option} value={option}>{option}</option>)}</select>:<input required={["reference","subject","date","title","ticket","location","issue","drive","tag","type","staff","event"].includes(field.key)} type={field.type||"text"} placeholder={field.placeholder} value={form[field.key]||""} onChange={e=>setForm({...form,[field.key]:e.target.value})}/>}</label>)}</div><div className="modal-actions"><button type="button" className="secondary-button" onClick={()=>setShowForm(false)}>Cancel</button><button type="submit" className="primary-button"><FilePlus2 size={16}/> Save record</button></div><p className="form-disclaimer">This entry is stored only in the current browser session. Database saving is not enabled yet.</p></form></div></div>}
+    {showForm&&selected&&<div className="modal-backdrop" onClick={()=>setShowForm(false)}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">NEW ENTRY</span><h2>Add {selected.short} record</h2></div><button className="icon-button" onClick={()=>setShowForm(false)} aria-label="Close form"><X size={19}/></button></div><form onSubmit={saveRecord}><div className="form-grid">{selected.fields.map(field=><label className={field.key==="details"||field.key==="notes"||field.key==="purpose"||field.key==="requirements"?"field full":"field"} key={field.key}><span>{field.label}</span>{field.key==="details"||field.key==="notes"||field.key==="purpose"||field.key==="requirements"?<textarea required={field.key==="details"} placeholder={field.placeholder} value={form[field.key]||""} onChange={e=>setForm({...form,[field.key]:e.target.value})}/>:field.options?<select value={form[field.key]||""} onChange={e=>setForm({...form,[field.key]:e.target.value})}><option value="">Select an option</option>{field.options.map(option=><option key={option} value={option}>{option}</option>)}</select>:<input required={["reference","subject","date","title","ticket","location","issue","drive","tag","type","staff","event"].includes(field.key)} type={field.type||"text"} placeholder={field.placeholder} value={form[field.key]||""} onChange={e=>setForm({...form,[field.key]:e.target.value})}/>}</label>)}</div><div className="modal-actions"><button type="button" className="secondary-button" onClick={()=>setShowForm(false)}>Cancel</button><button type="submit" className="primary-button"><FilePlus2 size={16}/> Save record</button></div><p className="form-disclaimer">Only authorised Google accounts with spreadsheet Editor access can save records.</p></form></div></div>}
     {toast&&<div className="toast"><CheckCircle2 size={17}/>{toast}</div>}
   </div>;
 }
