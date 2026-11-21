@@ -97,6 +97,28 @@ const modules: Module[] = [
     columns:[{key:"column9",label:"Column 9"},{key:"userId",label:"User ID"},{key:"fullName",label:"Full name"},{key:"loginName",label:"Login name"},{key:"column1",label:"Column 1"},{key:"officeName",label:"Office Name"},{key:"designation",label:"Designation"},{key:"inactiveDate",label:"InActive Date"},{key:"lastLogin",label:"Last Login"},{key:"mob",label:"Mob."}],
     samples:[{column9:"1",userId:"DEMO-USER-001",fullName:"Demo Person A",loginName:"demo.user.a",column1:"—",officeName:"Demo Office",designation:"Demo Designation",inactiveDate:"",lastLogin:"2026-11-10T10:30",mob:"0000000000"}]
   }
+  ,
+  {
+    name:"Pending Task (Backup)",short:"RFMS Archive",description:"Separate backup worksheet with the source headings; not merged into the active RFMS register.",icon:ClipboardList,
+    fields:[{key:"reportedDate",label:"Reported Date",placeholder:"",type:"date"},{key:"project",label:"Project",placeholder:"Project"},{key:"queryReportedByOffice",label:"Query reported by Office",placeholder:"Office"},{key:"rfmsNo",label:"RFMS No.",placeholder:"Reference"},{key:"description",label:"Description",placeholder:"Description"},{key:"status",label:"Status",placeholder:"Status"},{key:"media",label:"Media (Whatsapp, Email, Both)",placeholder:"Media"},{key:"dioRemarks",label:"DIO Remarks",placeholder:"Remarks"},{key:"followupUpdate",label:"Followup Date & Update Query status in details",placeholder:"Follow-up details"},{key:"diaRemarks",label:"DIA Remarks",placeholder:"Remarks"},{key:"column12",label:"Column 12",placeholder:""},{key:"column11",label:"Column 11",placeholder:""}],
+    columns:[{key:"reportedDate",label:"Reported Date"},{key:"project",label:"Project"},{key:"queryReportedByOffice",label:"Query reported by Office"},{key:"rfmsNo",label:"RFMS No."},{key:"description",label:"Description"},{key:"status",label:"Status"},{key:"media",label:"Media (Whatsapp, Email, Both)"},{key:"dioRemarks",label:"DIO Remarks"},{key:"followupUpdate",label:"Followup Date & Update Query status in details"},{key:"diaRemarks",label:"DIA Remarks"},{key:"column12",label:"Column 12"},{key:"column11",label:"Column 11"}],samples:[]
+  },
+  {
+    name:"GoG Projects",short:"GoG Projects",description:"The source tab contains a reference heading only; linked contact details are not embedded in this workbook.",icon:BookOpen,
+    fields:[{key:"reference",label:"NIC Out of Scope Project Contact Details",placeholder:"Reference"}],
+    columns:[{key:"reference",label:"NIC Out of Scope Project Contact Details"}],samples:[]
+  },
+  {
+    name:"Collection Status",short:"Collection Status",description:"Column structure from Sheet9. No source values are copied into this public demo.",icon:Activity,
+    fields:[{key:"district",label:"District ",placeholder:"District"},{key:"dioDia",label:"DIO/DIA",placeholder:"DIO/DIA"},{key:"collectionStatus",label:"Collection Status",placeholder:"Status"},{key:"amount",label:"Amount",placeholder:"Amount",type:"number"}],
+    columns:[{key:"district",label:"District "},{key:"dioDia",label:"DIO/DIA"},{key:"collectionStatus",label:"Collection Status"},{key:"amount",label:"Amount"}],samples:[]
+  },
+  {
+    name:"Poll Day Dashboard",short:"Poll Day",description:"Sheet7 reporting layout with source time checkpoints and gender headings; no polling figures are copied.",icon:Gauge,
+    fields:[{key:"authorityType",label:"Local authority type",placeholder:"TP / DP / NP / MNP"},{key:"male",label:"Male ",placeholder:"",type:"number"},{key:"female",label:"Female",placeholder:"",type:"number"},{key:"0945",label:"09:45",placeholder:"",type:"number"},{key:"1030",label:"10:30",placeholder:"",type:"number"},{key:"1200",label:"12:00",placeholder:"",type:"number"},{key:"0100",label:"01:00",placeholder:"",type:"number"},{key:"0200",label:"02:00",placeholder:"",type:"number"},{key:"0300",label:"03:00",placeholder:"",type:"number"},{key:"0400",label:"04:00",placeholder:"",type:"number"},{key:"0500",label:"05:00",placeholder:"",type:"number"},{key:"0600",label:"06:00",placeholder:"",type:"number"},{key:"0700",label:"07:00",placeholder:"",type:"number"}],
+    columns:[{key:"authorityType",label:"Local authority type"},{key:"male",label:"Male "},{key:"female",label:"Female"},{key:"0945",label:"09:45"},{key:"1030",label:"10:30"},{key:"1200",label:"12:00"},{key:"0100",label:"01:00"},{key:"0200",label:"02:00"},{key:"0300",label:"03:00"},{key:"0400",label:"04:00"},{key:"0500",label:"05:00"},{key:"0600",label:"06:00"},{key:"0700",label:"07:00"}],samples:[]
+  }
+
 ];
 
 const navItems = [
